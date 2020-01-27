@@ -1,4 +1,4 @@
-module github.com/6RiverSystems/netpigs
+module github.com/AeroNotix/netpigs
 
 go 1.13
 

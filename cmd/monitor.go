@@ -5,7 +5,7 @@ Copyright © 2019 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"github.com/6RiverSystems/netpigs/pkg/monitor"
+	"github.com/AeroNotix/netpigs/pkg/monitor"
 	"github.com/spf13/cobra"
 )
 
