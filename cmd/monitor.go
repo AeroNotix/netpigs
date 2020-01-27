@@ -14,12 +14,14 @@ type MonitorOpts struct {
 }
 
 func init() {
+	mo := MonitorOpts{}
 	// monitorCmd represents the monitor command
 	var monitorCmd = &cobra.Command{
 		Use: "monitor",
 		Run: func(cmd *cobra.Command, args []string) {
-			monitor.Monitor("wlp0s20f3")
+			monitor.Monitor(mo.iface)
 		},
 	}
+	monitorCmd.Flags().StringVarP(&mo.iface, "iface", "i", "", "interface to monitor")
 	rootCmd.AddCommand(monitorCmd)
 }

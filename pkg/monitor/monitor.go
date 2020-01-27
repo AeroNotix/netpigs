@@ -15,7 +15,7 @@ func Monitor(iface string) {
 	packetsource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetsource.Packets() {
 		if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-			log.Println(packet.String())
+			log.Printf("S: %d - D: %d\n", tcpLayer)
 		}
 	}
 }
