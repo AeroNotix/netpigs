@@ -17,7 +17,8 @@ type ProcNet struct {
 }
 type Connections struct {
 	sync.Mutex
-	addrs map[string]string
+	// pids        map[string]map[net.IP]net.IP
+	// pidsReverse map[string]map[net.IP]net.IP
 }
 
 func fromHexChar(c byte) uint8 {

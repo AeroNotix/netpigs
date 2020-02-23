@@ -1,12 +1,7 @@
-/*
-Copyright © 2019 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
-	//	"github.com/AeroNotix/netpigs/pkg/monitor"
-	"github.com/AeroNotix/netpigs/pkg/procnet"
+	"github.com/AeroNotix/netpigs/pkg/bpf"
 	"github.com/spf13/cobra"
 )
 
@@ -20,10 +15,9 @@ func init() {
 	var monitorCmd = &cobra.Command{
 		Use: "monitor",
 		Run: func(cmd *cobra.Command, args []string) {
-			//monitor.Monitor(mo.iface)
+			bpf.NewTCPTracer()
 		},
 	}
 	monitorCmd.Flags().StringVarP(&mo.iface, "iface", "i", "", "interface to monitor")
-	procnet.Connections{}.Parse()
 	rootCmd.AddCommand(monitorCmd)
 }
