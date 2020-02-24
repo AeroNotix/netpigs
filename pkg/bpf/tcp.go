@@ -14,7 +14,6 @@ import (
 	bpf "github.com/iovisor/gobpf/bcc"
 )
 
-// #include <linux/sched.h>
 import "C"
 
 type key_t struct {
@@ -31,6 +30,25 @@ const BPFProgram = `
 #include <net/sock.h>
 #include <bcc/proto.h>
 #include <linux/sched.h>
+
+struct tracepoint__sock__inet__sock_set_state {
+    unsigned short common_type;
+    unsigned char common_flags;
+    unsigned char common_preempt_count;
+    int common_pid;
+    const void *skaddr;
+    int oldstate;
+    int newstate;
+    u16 sport;
+    u16 dport;
+    u8 family;
+    u8 protocol;
+    u8 saddr[4];
+    u8 daddr[4];
+    u8 saddr_v6[16];
+    u8 daddr_v6[16];
+};
+
 struct metrics {
     u64 sent;
     u64 recv;
@@ -71,12 +89,14 @@ int kprobe__tcp_cleanup_rbuf(struct pt_regs *ctx, struct sock *sk, int copied)
     return 0;
 }
 // todo: this isn't working right now.
-int kprobe__tcp_set_state(struct pt_regs *ctx)
+int trace_sock_set_state(struct tracepoint__sock__inet__sock_set_state *args)
 {
+    if (args->protocol != IPPROTO_TCP)
+        return 0;
+
     u32 pid = bpf_get_current_pid_tgid();
-    struct sock *sk = (struct sock *) PT_REGS_PARM1(ctx);
-    int state = (int) PT_REGS_PARM2(ctx);
-    if (state != TCP_CLOSE) {
+
+    if (args->newstate != TCP_CLOSE) {
         return 0;
     }
     struct key_t key = {.pid = pid};
@@ -108,7 +128,7 @@ func NewTCPTracer() {
 	if err != nil {
 		panic(err)
 	}
-	fd2, err := m.LoadKprobe("kprobe__tcp_set_state")
+	fd2, err := m.LoadTracepoint("trace_sock_set_state")
 	if err != nil {
 		panic(err)
 	}
@@ -118,7 +138,7 @@ func NewTCPTracer() {
 	if err := m.AttachKretprobe("tcp_cleanup_rbuf", fd1, -1); err != nil {
 		panic(err)
 	}
-	if err := m.AttachKretprobe("tcp_set_state", fd2, -1); err != nil {
+	if err := m.AttachTracepoint("sock:inet_sock_set_state", fd2); err != nil {
 		panic(err)
 	}
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
