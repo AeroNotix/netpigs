@@ -26,17 +26,6 @@ type metrics struct {
 	Recv uint64
 }
 
-type PrometheusMetric struct {
-	Name      string
-	Comm      string
-	Value     uint64
-	IPVersion string
-}
-
-func (pm PrometheusMetric) String() string {
-	return fmt.Sprintf("%s{ip=\"%s\", comm=\"%s\"} %d", pm.Name, pm.IPVersion, pm.Comm, pm.Value)
-}
-
 const BPFProgram = `
 #include <uapi/linux/ptrace.h>
 #include <net/sock.h>
