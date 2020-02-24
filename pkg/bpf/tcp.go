@@ -16,9 +16,7 @@ import (
 
 import "C"
 
-type key_t struct {
-	Pid uint32
-}
+type BPFMetricsKey uint32
 
 type metrics struct {
 	Send uint64
@@ -105,7 +103,7 @@ int trace_sock_set_state(struct tracepoint__sock__inet__sock_set_state *args)
 }
 `
 
-func pidToComm(pid uint32) string {
+func pidToComm(pid BPFMetricsKey) string {
 	// TODO: don't need to do this - the kprobe can do it but I had
 	// issues with buffer sizes and reading garbage. Figure out what's
 	// the fix.
@@ -143,7 +141,7 @@ func NewTCPTracer() {
 	}
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
-		var key key_t
+		var key BPFMetricsKey
 		var value metrics
 		for it := sendBytes.Iter(); it.Next(); {
 			if err := binary.Read(bytes.NewBuffer(it.Key()), binary.LittleEndian, &key); err != nil {
@@ -152,8 +150,8 @@ func NewTCPTracer() {
 			if err := binary.Read(bytes.NewBuffer(it.Leaf()), binary.LittleEndian, &value); err != nil {
 				fmt.Println(err)
 			}
-			fmt.Fprintf(w, "bpf_network_stats_send{ipv=4, comm=\"%s\"} %d \n", pidToComm(key.Pid), value.Send)
-			fmt.Fprintf(w, "bpf_network_stats_recv{ipv=4, comm=\"%s\"} %d \n", pidToComm(key.Pid), value.Recv)
+			fmt.Fprintf(w, "bpf_network_stats_send{ipv=4, comm=\"%s\"} %d \n", pidToComm(key), value.Send)
+			fmt.Fprintf(w, "bpf_network_stats_recv{ipv=4, comm=\"%s\"} %d \n", pidToComm(key), value.Recv)
 		}
 	})
 	panic(http.ListenAndServe(":9124", nil))
