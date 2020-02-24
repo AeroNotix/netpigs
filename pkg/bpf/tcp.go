@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-
 	"io/ioutil"
-
 	"net/http"
-
 	"strings"
 
 	bpf "github.com/iovisor/gobpf/bcc"
