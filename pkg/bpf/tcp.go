@@ -55,7 +55,7 @@ BPF_HASH(netmetrics, struct key_t, struct metrics);
 int kprobe__tcp_sendmsg(struct pt_regs *ctx, struct sock *sk,
     struct msghdr *msg, size_t size)
 {
-    u32 pid = bpf_get_current_pid_tgid();
+    u32 pid = (u32) (bpf_get_current_pid_tgid() >> 32);
     struct metrics *val;
     struct key_t key = {.pid = pid};
     val = netmetrics.lookup_or_try_init(&key, &(struct metrics){0,0});
@@ -72,7 +72,7 @@ int kprobe__tcp_sendmsg(struct pt_regs *ctx, struct sock *sk,
  */
 int kprobe__tcp_cleanup_rbuf(struct pt_regs *ctx, struct sock *sk, int copied)
 {
-    u32 pid = bpf_get_current_pid_tgid();
+    u32 pid = (u32) (bpf_get_current_pid_tgid() >> 32);
     struct metrics *val;
     if (copied <= 0)
         return 0;
@@ -84,18 +84,15 @@ int kprobe__tcp_cleanup_rbuf(struct pt_regs *ctx, struct sock *sk, int copied)
     return 0;
 }
 // todo: this isn't working right now.
-int trace_sock_set_state(struct tracepoint__sock__inet__sock_set_state *args)
+int kprobe__tcp_set_state(struct pt_regs *ctx, struct sock *sk, int state)
 {
-    if (args->protocol != IPPROTO_TCP)
-        return 0;
-
-    u32 pid = bpf_get_current_pid_tgid();
-
-    if (args->newstate != TCP_CLOSE) {
+    u32 pid = (u32) (bpf_get_current_pid_tgid() >> 32);
+    if (state != TCP_CLOSE) {
         return 0;
     }
+
     struct key_t key = {.pid = pid};
-    netmetrics.delete(&key);
+    bpf_trace_printk("delete state: %d - %d\n", pid, netmetrics.delete(&key));
     return 0;
 }
 `
@@ -106,10 +103,10 @@ func pidToComm(pid BPFMetricsKey) string {
 	// the fix.
 	comm, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
 	if err != nil {
-		return "<unknown>"
+		return fmt.Sprintf("<unknown>: %d", pid)
 	}
 	s := strings.Split(strings.Split(string(comm), " ")[0], "/")
-	return s[len(s)-1]
+	return fmt.Sprintf("%s - %d", s[len(s)-1], pid)
 }
 
 func NewTCPTracer() {
@@ -123,7 +120,7 @@ func NewTCPTracer() {
 	if err != nil {
 		panic(err)
 	}
-	fd2, err := m.LoadTracepoint("trace_sock_set_state")
+	fd2, err := m.LoadKprobe("kprobe__tcp_set_state")
 	if err != nil {
 		panic(err)
 	}
@@ -133,7 +130,7 @@ func NewTCPTracer() {
 	if err := m.AttachKretprobe("tcp_cleanup_rbuf", fd1, -1); err != nil {
 		panic(err)
 	}
-	if err := m.AttachTracepoint("sock:inet_sock_set_state", fd2); err != nil {
+	if err := m.AttachKretprobe("tcp_set_state", fd2, -1); err != nil {
 		panic(err)
 	}
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
