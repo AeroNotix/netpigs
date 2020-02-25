@@ -147,8 +147,8 @@ func NewTCPTracer() {
 			if err := binary.Read(bytes.NewBuffer(it.Leaf()), binary.LittleEndian, &value); err != nil {
 				fmt.Println(err)
 			}
-			fmt.Fprintf(w, "bpf_network_stats_send{ipv=4, comm=\"%s\"} %d \n", pidToComm(key), value.Send)
-			fmt.Fprintf(w, "bpf_network_stats_recv{ipv=4, comm=\"%s\"} %d \n", pidToComm(key), value.Recv)
+			fmt.Fprintf(w, "bpf_network_stats_send{comm=\"%s\"} %d \n", pidToComm(key), value.Send)
+			fmt.Fprintf(w, "bpf_network_stats_recv{comm=\"%s\"} %d \n", pidToComm(key), value.Recv)
 		}
 	})
 	panic(http.ListenAndServe(":9124", nil))
