@@ -44,7 +44,6 @@ int BPF_KPROBE(tcp_cleanup_rbuf)
     val = bpf_map_lookup_elem(&tracking_map, comm);
     if (val) {
         sum = *val + copied;
-        bpf_map_update_elem(&tracking_map, comm, &sum, BPF_ANY);
     } else {
         sum = copied;
     }
