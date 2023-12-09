@@ -1,1 +1,5 @@
 netpigs
+*.o
+
+pkg/bpf/kprobes_bpfel.go
+pkg/bpf/kprobes_bpfeb.go
